@@ -1,0 +1,28 @@
+{
+  "name": "os-firebase-ads-creator",
+  "version": "1.0.31",
+  "description": "an automated script aiming to register new android/ios ad units to AdMob",
+  "main": "index.js",
+  "dependencies": {
+    "os-puppeteer-helper": "^1.0.9",
+    "os-tools": "^1.0.3",
+    "xmlbuilder": "^13.0.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/osfunapps/os-firebase-ads-creator-npm"
+  },
+  "keywords": [
+    "admob",
+    "ads",
+    "npm",
+    "node",
+    "Firebase",
+    "project",
+    "automation",
+    "js",
+    "puppeteer"
+  ],
+  "author": "osfunapps",
+  "license": "ISC"
+}
