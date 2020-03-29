@@ -104,7 +104,7 @@ const self = module.exports = {
 async function registerNewAppWithAdUnitsAsync(appName, iosOrAndroid, adsList, outputPath) {
 
     // create browser
-    const tuplee = await ph.createBrowser("about:blank");
+    const tuplee = await ph.createBrowser("about:blank",5,false,1300,768,true);
     browser = tuplee[0];
     page = tuplee[1];
 
@@ -147,7 +147,7 @@ async function registerNewApp(appName, iosOrAndroid) {
 }
 
 async function addAdUnitsToExistingAppAsync(appId, adsList, outputPath) {
-    const tuplee = await ph.createBrowser("about:blank");
+    const tuplee = await ph.createBrowser("about:blank",5,false,1300,768,true);
     browser = tuplee[0];
     page = tuplee[1];
     let adCreationHome = buildAdCreationHomeLink(appId);
