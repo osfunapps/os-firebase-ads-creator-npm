@@ -3,6 +3,7 @@ this is an automated script to create android/ios ad units in AdMob
  */
 const ph = require('os-puppeteer-helper');
 const tools = require('os-tools');
+const fh = require('os-file-handler');
 const mBannerAd = require('./ads/bannerAd');
 const mInterAd = require('./ads/interstitialAd');
 const mNativeAdvancedAd = require('./ads/NativeAdvancedAd');
@@ -23,11 +24,6 @@ let XML_ROOT = 'ads'
 let XML_AD_NODE = 'ad'
 const XML_ATTR_NAME_APP_ID = 'app_id'
 let XML_ATTR_TYPE_VAL_DATA = 'data'
-let XML_ATTR_TYPE_VAL_BANNER = 'banner'
-let XML_ATTR_TYPE_VAL_REWARD = 'reward'
-
-// indications
-let currAdIdx = 0;
 
 const self = module.exports = {
 
@@ -35,13 +31,19 @@ const self = module.exports = {
      * will register ad units to an already created admob app
      * @param appId your admob app id
      * @param adsList the list of ads to add
-     * @param xmlOutputFilePath the path to the xml file in which all of the ad ids will be saved
+     * @param xmlOutputFilePath the path to the xml file in which all of the ad ids will be saved.
+     * NOTICE: if the file already exists, the ad names which are already created in it will be skipped.
      * @param fireFoxNightlyPath the path to your FireFox Nightly runner file
      * In Windows that's usually your firefox.exe file (like 'C:/Program Files/Firefox Nightly/firefox.exe').
      * In Mac that's usually your firefox file, located in your Firefox Nightly.app, inside the Applications dir
+     * @param page (optional) you can add a puppeteer page if you want to work on a specific page
      */
-    addAdUnitsToExistingApp: async function (appId, adsList, fireFoxNightlyPath, xmlOutputFilePath = null) {
-        await addAdUnitsToExistingAppAsync(appId, adsList, xmlOutputFilePath, fireFoxNightlyPath)
+    addAdUnitsToExistingApp: async function (appId,
+                                             adsList,
+                                             fireFoxNightlyPath,
+                                             xmlOutputFilePath = null,
+                                             page = null) {
+        return await addAdUnitsToExistingAppAsync(appId, adsList, xmlOutputFilePath, fireFoxNightlyPath, page)
     },
 
     /**
@@ -49,13 +51,20 @@ const self = module.exports = {
      * @param appName the name which will be stored in admob for reference
      * @param platform select the app's platform ('ios' or 'android')
      * @param adsList the list of ad units to add
-     * @param xmlOutputFilePath the path to the xml file in which all of the ad ids will be saved
+     * @param xmlOutputFilePath the path to the xml file in which all of the ad ids will be saved.
+     * NOTICE: if the file already exists, the ad names which are already created in it will be skipped.
      * @param fireFoxNightlyPath the path to your FireFox Nightly runner file
      * In Windows that's usually your firefox.exe file (like 'C:/Program Files/Firefox Nightly/firefox.exe').
      * In Mac that's usually your firefox file, located in your Firefox Nightly.app, inside the Applications dir
+     * @param page (optional) you can add a puppeteer page if you want to work on a specific page
      */
-    registerNewAppWithAdUnits: async function (appName, platform, adsList, fireFoxNightlyPath, xmlOutputFilePath = null) {
-        await registerNewAppWithAdUnitsAsync(appName, platform, adsList, fireFoxNightlyPath, xmlOutputFilePath)
+    registerNewAppWithAdUnits: async function (appName,
+                                               platform,
+                                               adsList,
+                                               fireFoxNightlyPath,
+                                               xmlOutputFilePath = null,
+                                               page = null) {
+        return await registerNewAppWithAdUnitsAsync(appName, platform, adsList, fireFoxNightlyPath, xmlOutputFilePath, page)
     },
 
     /**
@@ -115,19 +124,23 @@ const self = module.exports = {
 
 };
 
-async function registerNewAppWithAdUnitsAsync(appName, platform, adsList, fireFoxNightlyPath, xmlOutputFilePath) {
+async function registerNewAppWithAdUnitsAsync(appName, platform, adsList, fireFoxNightlyPath, xmlOutputFilePath, page) {
 
     // create browser
-    const tuplee = await ph.createFirefoxBrowser("about:blank", 5, false, 1300, 768, true, fireFoxNightlyPath);
-    let page = tuplee[1];
+    if(page == null) {
+        const tuplee = await ph.createFirefoxBrowser("about:blank", 5, false, 1300, 768, true, fireFoxNightlyPath);
+        page = tuplee[1];
+    }
 
     // register new app
     let appId = await registerNewApp(page, appName, platform);
 
-    await runCyclesAndSave(page, appId, adsList, xmlOutputFilePath)
+    return await runCyclesAndSave(page, appId, adsList, xmlOutputFilePath)
 }
 
 async function registerNewApp(page, appName, platform) {
+
+    console.log("[INFO] Creating app: " + appName)
 
     // navigate to app creation
     await ph.navigateTo(page, LINK_APP_CREATION, null, '.footer-copyright', null, 3000);
@@ -167,14 +180,18 @@ async function registerNewApp(page, appName, platform) {
 }
 
 
-async function addAdUnitsToExistingAppAsync(appId, adsList, outputPath, fireFoxNightlyPath) {
-    const tuplee = await ph.createFirefoxBrowser("about:blank", 5, false, 1300, 768, fireFoxNightlyPath);
-    let page = tuplee[1];
-    await runCyclesAndSave(page, appId, adsList, outputPath)
+async function addAdUnitsToExistingAppAsync(appId, adsList, outputPath, fireFoxNightlyPath, page) {
+    if(page == null) {
+        const tuplee = await ph.createFirefoxBrowser("about:blank", 5, false, 1300, 768, fireFoxNightlyPath);
+        page = tuplee[1];
+    }
+    return await runCyclesAndSave(page, appId, adsList, outputPath)
 }
 
 
 async function runCyclesAndSave(page, appId, adsList, xmlOutputFilePath) {
+
+    console.log("[INFO] Starting to add ad units to " + appId)
 
     // create the link and navigate to ad creation
     let appendedAddr = appId.substring(appId.indexOf('~') + 1);
@@ -182,13 +199,21 @@ async function runCyclesAndSave(page, appId, adsList, xmlOutputFilePath) {
 
     let xml = null;
     if (xmlOutputFilePath != null) {
-        xml = await xh.createXml(XML_ROOT)
-        addNode(xml, xmlOutputFilePath, XML_ATTR_NAME_APP_ID, XML_ATTR_TYPE_VAL_DATA, appId)
+        if(fh.isFileOrDirExists(xmlOutputFilePath)) {
+            xml = await xh.loadXml(xmlOutputFilePath)
+        } else {
+            xml = await xh.createXml(XML_ROOT)
+        }
+        if(isXMLNodeExists(xml, XML_ATTR_NAME_APP_ID)) {
+            tools.promptUser("[INFO] It seems like " + XML_ATTR_NAME_APP_ID + " is already exists in the xml. Skipping!" )
+        } else {
+            addNode(xml, xmlOutputFilePath, XML_ATTR_NAME_APP_ID, XML_ATTR_TYPE_VAL_DATA, appId)
+        }
     }
 
     // call the next cycle of ad creation
-    await onNextCycle(page, adCreationHome, adsList, xmlOutputFilePath, xml);
-    await onEnd()
+    await onNextCycle(0, page, adCreationHome, adsList, xmlOutputFilePath, xml);
+    return await onEnd(page)
 }
 
 function addNode(xml, outputPath, adName, adType, adId) {
@@ -196,36 +221,19 @@ function addNode(xml, outputPath, adName, adType, adId) {
     xh.saveXml(xml, outputPath)
 }
 
-// // will save the properties as an xml file
-// function buildAndSaveXml(outputPath, appId, adsList, appName = null) {
-//     let builder = require('xmlbuilder');
-//
-//     let root = builder.create('root');
-//     let appEle = root.ele('App', appId);
-//
-//     if (appName !== null) {
-//         appEle.att('name', appName)
-//     }
-//
-//     let adsEle = root.ele('Ads');
-//     let i;
-//     for (i = 0; i < adsList.length; i++) {
-//         let adEle = adsEle.ele(adsList[i].genericType, adsList[i].id);
-//         adEle.att('name', adsList[i].name)
-//     }
-//
-//     const xml = root.end({pretty: true});
-//     console.log(xml);
-//     tools.textToFile(xml, outputPath + '/ads.xml')
-// }
+function isXMLNodeExists(xml, adName) {
+    let nodes = xh.getNodes(xml, XML_AD_NODE, 'name', adName)
+    let exists = nodes.length !== 0
+    return exists
+}
 
-async function onEnd() {
-    // kill the browser
-    // await browser.close()
+async function onEnd(page) {
+    console.log("[INFO] Done. Returning page...")
+    return page
 }
 
 // will be called when each cycle starts
-async function onNextCycle(page, adCreationHome, adsList, xmlOutputFilePath, xml) {
+async function onNextCycle(currAdIdx, page, adCreationHome, adsList, xmlOutputFilePath, xml) {
 
     await ph.navigateTo(page, adCreationHome, null);
 
@@ -241,6 +249,16 @@ async function onNextCycle(page, adCreationHome, adsList, xmlOutputFilePath, xml
 
         // choose the right ad
         let currAd = adsList[currAdIdx];
+
+        if(xml != null) {
+            let adCreated = isXMLNodeExists(xml, currAd.name)
+            if(adCreated) {
+                console.log("[INFO] It seems like the ad node: " + currAd.name + " is already exists in the xml. Skipping!" )
+                currAdIdx += 1;
+                await onNextCycle(currAdIdx, page, adCreationHome, adsList, xmlOutputFilePath, xml)
+                return
+            }
+        }
         switch (currAd.genericType) {
             case adTypes.TYPE_BANNER:
                 await registerBannerAd(page, currAd);
@@ -260,7 +278,7 @@ async function onNextCycle(page, adCreationHome, adsList, xmlOutputFilePath, xml
             addNode(xml, xmlOutputFilePath, currAd.name, currAd.genericType, currAd.id)
         }
         currAdIdx += 1;
-        await onNextCycle(page, adCreationHome, adsList, xmlOutputFilePath, xml)
+        await onNextCycle(currAdIdx, page, adCreationHome, adsList, xmlOutputFilePath, xml)
     }
 }
 

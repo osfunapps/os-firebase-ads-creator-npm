@@ -1,6 +1,6 @@
 {
   "name": "os-firebase-ads-creator",
-  "version": "1.0.33",
+  "version": "1.0.36",
   "description": "an automated script aiming to register new android/ios ad units to AdMob",
   "main": "index.js",
   "dependencies": {
