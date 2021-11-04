@@ -1,13 +1,13 @@
 {
   "name": "os-firebase-ads-creator",
-  "version": "1.0.36",
+  "version": "1.0.39",
   "description": "an automated script aiming to register new android/ios ad units to AdMob",
   "main": "index.js",
   "dependencies": {
-    "os-puppeteer-helper": "^2.0.37",
-    "os-tools": "^1.4.0",
-    "os-xml-file-handler": "^1.0.4",
-    "xmlbuilder": "^13.0.2"
+    "os-puppeteer-helper": "^3.0.2",
+    "os-tools": "^1.4.1",
+    "os-xml-file-handler": "^1.0.6",
+    "xmlbuilder": "^15.1.1"
   },
   "repository": {
     "type": "git",

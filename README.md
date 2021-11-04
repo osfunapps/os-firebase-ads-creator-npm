@@ -40,7 +40,7 @@ If your app already registered:
 ac.addAdUnitsToExistingApp('your exiting app's admob id', adsList, '/xml/output/path/');
 ```
 
-You can also save the output:
+You can also save the output:t
 
 ```xml
 <?xml version="1.0"?>
